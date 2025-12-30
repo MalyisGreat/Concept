@@ -1,0 +1,87 @@
+======================================================================
+EXPERIMENT: DATA AUGMENTATION AND TRAINING IMPROVEMENTS
+======================================================================
+Timestamp: 2025-12-29 19:40:54
+Device: cuda
+Teacher: gpt2
+
+Configuration:
+  - Sentences per concept: 15
+  - Word dropout rate: 0.15
+  - Synonym replacement prob: 0.2
+  - Num extraction prompts: 5
+  - Label smoothing: 0.1
+  - Curriculum learning: True
+  - Number of epochs: 100
+  - Student embed dim: 128
+  - Student layers: 3
+  - Total templates: 25
+======================================================================
+
+[STEP 1] Extracting concept vectors (multi-prompt averaging)...
+Teacher hidden dimension: 768
+
+[STEP 2] Preparing datasets with curriculum learning...
+Curriculum stage 1 (easy): 32 concepts
+Curriculum stage 2 (medium): 38 concepts (total: 70)
+Curriculum stage 3 (hard): 38 concepts (total: 108)
+Validation concepts: 28
+
+[STEP 3] Initializing student model...
+Student parameters: 7,135,232
+Student architecture:
+  - Embedding dim: 128
+  - Num layers: 3
+  - Num heads: 4
+  - FF dim: 512
+  - Dropout: 0.15
+
+[STEP 4] Training with curriculum learning and data augmentation...
+
+[STEP 5] Evaluation...
+
+--- Evaluation by Difficulty Level ---
+
+======================================================================
+RESULTS SUMMARY
+======================================================================
+
+Training Set Performance:
+  - Mean Cosine Similarity: 0.1149
+  - Top-1 Accuracy: 0.0093
+  - Top-5 Accuracy: 0.0556
+
+Validation Set (Held-out) Performance:
+  - Mean Cosine Similarity: 0.0358
+  - Top-1 Accuracy: 0.0357
+  - Top-5 Accuracy: 0.2143
+
+Performance by Difficulty (Held-out):
+  Easy concepts:   Cos Sim = 0.6086, Top-1 = 0.1250
+  Medium concepts: Cos Sim = -0.1303, Top-1 = 0.1000
+  Hard concepts:   Cos Sim = -0.2563, Top-1 = 0.1000
+
+Generalization Gap (Train - Val): 0.0790
+
+======================================================================
+EXPERIMENT TECHNIQUES USED:
+======================================================================
+1. Diverse sentence templates: 25 templates with concept at start/middle/end
+2. Word dropout: Randomly drop 10-20% of non-concept tokens
+3. Synonym replacement: Replace common words with synonyms
+4. Multi-prompt extraction: Average concept vectors from 5 different prompts
+5. More training data: 15 sentences per concept
+6. Curriculum learning: Start with easy concepts, add medium, then hard
+7. Label smoothing: Target cosine similarity of 0.9 instead of 1.0
+8. Higher dropout: 0.15
+======================================================================
+
+Final Epoch Statistics:
+  - Final Train Cosine Sim: 0.3453
+  - Final Val Cosine Sim: 0.0174
+  - Best Val Cosine Sim: 0.0231
+
+Generated files:
+  - concept_vectors_multi_prompt.pt
+  - checkpoints_data_exp/best_model.pt
+  - training_curves_data_exp.png

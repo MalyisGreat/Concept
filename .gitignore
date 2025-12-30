@@ -1,0 +1,25 @@
+# Windows reserved names
+nul
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.env
+
+# IDE
+.vscode/
+.idea/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Large files (exceed GitHub 100MB limit)
+# These need to be regenerated locally - see README
+data/vectors/qwen3_vectors_qwen3_0.6b_50000concepts.pt
+experiments/gpt2_baseline/checkpoints_data_exp/best_model.pt
+experiments/gpt2_baseline/checkpoints_contrastive/best_model_contrastive.pt

@@ -1,0 +1,10 @@
+{
+  "arch": "transformer",
+  "model_dim": 256,
+  "num_layers": 2,
+  "num_params": 2301952,
+  "num_sequences": 660,
+  "best_val": 0.8067888021469116,
+  "test": 0.8470807075500488,
+  "gap": -0.04029190540313721
+}

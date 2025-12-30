@@ -1,0 +1,437 @@
+================================================================================
+ACTIVATION DISTILLATION EXPERIMENTS - FULL DOCUMENTATION
+================================================================================
+Last Updated: December 29, 2024
+
+================================================================================
+OVERVIEW: WHAT ARE WE DOING?
+================================================================================
+
+GOAL: Train a TINY model (~5M params) to predict the internal representations
+(activation vectors) of a LARGE language model (Qwen3-0.6B, 600M params).
+
+WHY THIS MATTERS:
+- If successful, we have a compressed "semantic core" that understands meaning
+- Could be used for: LLM steering, semantic search, or even a compressed LM
+- 100x smaller model that captures semantic structure
+
+THE CORE IDEA:
+1. Extract "direction vectors" from Qwen3 for many concepts
+2. Train small model: text -> direction vector
+3. Test if it generalizes to UNSEEN concepts (not just memorizes)
+
+================================================================================
+KEY INSIGHT DISCOVERED
+================================================================================
+
+PROBLEM WITH EARLY EXPERIMENTS:
+- Models had ~19-39M params for only 1000 concepts
+- That's ~19,000-39,000 params per concept = easy to memorize
+- Result: Great train accuracy, terrible test accuracy (overfitting)
+
+SOLUTION THAT WORKS:
+- Use TINY embeddings (32-64 dim instead of 256+)
+- Use LOTS of data (50,000 concepts instead of 1000)
+- Result: 5M params / 35K concepts = 143 params per concept
+- Forces the model to learn STRUCTURE, not memorize
+
+BEST RESULT SO FAR:
+- Model: Frozen Qwen3 embeddings + MLP (hidden=64)
+- Trainable Params: only 132K (!!!)
+- Train cos_sim: 0.93
+- Val cos_sim: 0.92
+- Test cos_sim: 0.90
+- Gap: 0.016
+
+FINAL COMPARISON (All Results):
+| Approach              | Trainable Params | Inference Size | Test cos_sim |
+|-----------------------|------------------|----------------|--------------|
+| Frozen+MLP h=256      | 526K             | 600MB*         | 0.9076       | <- Best!
+| Frozen+MLP h=128      | 263K             | 600MB*         | 0.9071       |
+| Linear Probe          | 1.05M            | 600MB*         | 0.9062       | <- Almost linear!
+| Frozen+MLP h=64       | 132K             | 600MB*         | 0.9019       |
+| Trainable e=64,h=256  | 10M              | 40MB           | 0.8951       | <- Best standalone
+| Trainable e=64,h=128  | 9.8M             | 40MB           | 0.8858       |
+| Trainable e=32,h=256  | 5M               | 20MB           | 0.8766       |
+| Trainable e=32,h=128  | 5M               | 20MB           | 0.8674       |
+
+*Frozen approaches need Qwen3 embedding table (600MB) at inference
+
+KEY FINDINGS:
+1. Frozen+MLP h=256 gets best accuracy (0.9076) but needs 600MB at inference
+2. LINEAR PROBE gets 0.9062 - the transformation is ALMOST LINEAR!
+3. Trainable e=64,h=256 gets 0.8951 with only 40MB inference (best standalone)
+4. The relationship between embeddings and direction vectors is approximately linear
+5. This linear relationship could enable invertible transforms for language generation
+
+CRITICAL INSIGHT:
+The linear probe result (0.906) proves that:
+  direction_vector ≈ W @ embedding + b
+
+However, the INVERSE does NOT work well (see "What Doesn't Work" section below).
+
+================================================================================
+WHAT DOESN'T WORK (IMPORTANT!)
+================================================================================
+
+1. INVERSE LINEAR TRANSFORM FOR GENERATION (linear_lm.py)
+
+   The idea was: if embedding → direction is linear, then direction → embedding
+   should also work via pseudo-inverse. This FAILED.
+
+   Results from linear_lm.py (20,000 sequences):
+   - Forward transform (embedding → direction): 0.9998 cos_sim (GREAT!)
+   - Inverse reconstruction (direction → embedding): 0.3588 cos_sim (TERRIBLE!)
+
+   WHY IT FAILS:
+   - The 1024-dim direction space is LOSSY
+   - Many different embeddings map to similar directions
+   - The pseudo-inverse cannot recover the lost information
+   - Direction vectors capture SEMANTIC meaning but lose token-specific info
+
+   Script: experiments/qwen3_scaling/linear_lm.py
+
+2. NEXT-VECTOR PREDICTION → DECODE VIA INVERSE
+
+   The idea was:
+   1. Train model to predict next direction vector
+   2. Use inverse transform to get embedding
+   3. Find nearest token to embedding
+
+   This doesn't work because step 2 fails (inverse is too lossy).
+
+3. GENERATING FROM DIRECTION SPACE DIRECTLY
+
+   Direction vectors are good for:
+   - Semantic similarity
+   - Concept classification
+   - LLM steering
+
+   Direction vectors are NOT good for:
+   - Direct text generation (information is lost)
+   - Token-level prediction (too abstract)
+
+================================================================================
+FOLDER STRUCTURE
+================================================================================
+
+activation-distillation/
+├── EXPERIMENT_DOCUMENTATION.txt    <- THIS FILE
+├── README.md                       <- Basic readme
+├── requirements.txt                <- Python dependencies
+│
+├── data/
+│   └── vectors/
+│       ├── qwen3_vectors_qwen3_0.6b.pt           <- 1449 concepts (old)
+│       └── qwen3_vectors_qwen3_0.6b_50000concepts.pt  <- 50K concepts (USE THIS)
+│
+├── results/                        <- Experiment results (JSON files)
+│
+└── experiments/
+    ├── gpt2_baseline/              <- Old GPT-2 experiments (deprecated)
+    │
+    └── qwen3_scaling/              <- MAIN EXPERIMENTS (use these)
+        ├── extract_qwen3_vectors.py      <- Extract vectors (small scale)
+        ├── extract_large_scale.py        <- Extract vectors (50K+ concepts)
+        ├── run_scaling_experiment.py     <- Grid search over model sizes
+        ├── run_scaling_v2.py             <- Tiny model scaling
+        ├── run_structured_learning.py    <- Bottleneck + triplet loss
+        ├── compare_approaches.py         <- Compare different approaches
+        ├── run_frozen_embedding.py       <- Frozen Qwen3 embeddings
+        ├── quick_frozen_test.py          <- Quick single frozen test
+        ├── next_vector_lm.py             <- Next-vector prediction LM
+        └── linear_lm.py                  <- Linear inverse LM (FAILED - see docs)
+
+================================================================================
+KEY FILES AND WHAT THEY DO
+================================================================================
+
+1. extract_large_scale.py
+   - Extracts direction vectors from Qwen3 for up to 50K+ concepts
+   - Downloads word lists from NLTK and web
+   - Saves to data/vectors/
+   - USAGE: python extract_large_scale.py --model qwen3-0.6b --num-concepts 50000
+
+2. compare_approaches.py  <- RECOMMENDED STARTING POINT
+   - Compares multiple approaches on all 50K concepts
+   - Tests: tiny trainable embeddings, frozen embeddings, linear probe
+   - Small models, fast training
+   - USAGE: python compare_approaches.py --epochs 50
+
+3. next_vector_lm.py  <- EXPERIMENTAL (not fully tested)
+   - Tests "compressed language model" idea
+   - Predicts next VECTOR in a sequence (not next token)
+   - Decodes by finding nearest token to predicted vector
+   - USAGE: python next_vector_lm.py --arch transformer --epochs 50
+
+4. run_scaling_experiment.py
+   - Full grid search over model sizes and concept counts
+   - Takes longer, more thorough
+   - USAGE: python run_scaling_experiment.py --vectors "..\..\data\vectors\qwen3_vectors_qwen3_0.6b_50000concepts.pt"
+
+5. linear_lm.py  <- FAILED EXPERIMENT (kept for reference)
+   - Tested inverse linear transform for language generation
+   - Idea: predict direction → invert to embedding → find nearest token
+   - RESULT: Inverse reconstruction only 0.36 cos_sim (too lossy!)
+   - Generates 20K synthetic sentences from templates
+   - Trains linear transform embedding → direction (works: 0.9998)
+   - Trains next-direction predictor transformer
+   - CONCLUSION: Don't use inverse for generation. Direction space is lossy.
+
+================================================================================
+APPROACHES TESTED
+================================================================================
+
+APPROACH 1: TRAINABLE TINY EMBEDDINGS (BEST SO FAR)
+- Tiny embedding dimension (32-64)
+- Small MLP on top
+- Train everything from scratch
+- ~5M params, 0.87 test cosine similarity
+- Pros: Small inference model, good results
+- Cons: Still uses ~5M params
+
+APPROACH 2: FROZEN QWEN3 EMBEDDINGS + MLP  <- BEST APPROACH!
+- Use Qwen3's embedding layer (frozen, not trained)
+- Only train a small MLP on top
+- Only 132K trainable params with hidden=64!
+- Test cos_sim: 0.90 (better than trainable!)
+- Pros: Way fewer trainable params, better generalization
+- Cons: Need full Qwen3 embedding table at inference (~600MB)
+- INSIGHT: The mapping from embeddings to direction vectors is SIMPLE
+
+APPROACH 3: LINEAR PROBE
+- Just a single linear layer on frozen embeddings
+- ~1M params
+- Testing if relationship is approximately linear
+
+================================================================================
+WHAT COSINE SIMILARITY MEANS
+================================================================================
+
+The models output 1024-dim vectors. We measure how close they are to the
+true Qwen3 direction vectors using cosine similarity:
+
+- 1.0  = exact same direction (perfect)
+- 0.85 = about 32 degrees apart (very good!)
+- 0.5  = 60 degrees apart (mediocre)
+- 0.0  = perpendicular/unrelated
+- -1.0 = opposite direction
+
+Our best model achieves 0.87 on TEST data (unseen concepts).
+This means it's predicting vectors that point in nearly the same direction
+as where Qwen3 actually represents those concepts.
+
+================================================================================
+DATA DETAILS
+================================================================================
+
+50K CONCEPT DATASET:
+- Total concepts: 50,000
+- Train split: 35,000 (70%)
+- Val split: 7,500 (15%)
+- Test split: 7,500 (15%)
+
+CONCEPTS INCLUDE:
+- Animals, objects, actions, adjectives
+- Abstract concepts, emotions, numbers
+- Places, people, food, technology
+- Word variations with prefixes/suffixes
+
+DIRECTION VECTORS:
+- Extracted from Qwen3-0.6B layer 14 (middle layer)
+- 1024 dimensions
+- direction_vector = concept_vector - mean_vector
+- This removes the "average" leaving only what makes each concept unique
+
+================================================================================
+IDEAS TO EXPLORE NEXT
+================================================================================
+
+1. AUXILIARY SUPERVISION FOR TINY LM (HIGH PRIORITY - PROMISING!)
+
+   The idea: Use direction vectors as AUXILIARY training signal, not main path.
+
+   Standard LM:
+     hidden → logits → cross_entropy(logits, next_token)
+
+   With auxiliary supervision:
+     hidden → logits → cross_entropy(logits, next_token)  [MAIN LOSS]
+        ↓
+     hidden → cosine_loss(hidden, direction_vector)       [AUXILIARY LOSS]
+
+   total_loss = main_loss + λ * auxiliary_loss
+
+   WHY THIS COULD WORK:
+   - Direction vectors encode semantic knowledge from Qwen3's training
+   - Each training example provides 1024-dim of semantic guidance
+   - Could dramatically reduce data requirements for training small LM
+   - Like having a "tutor" that guides internal representations
+
+   This is DIFFERENT from the failed inverse approach:
+   - Generation still happens through normal logits → token path
+   - Direction vectors just help TRAIN better representations
+   - No lossy inverse transform needed!
+
+2. DISTILL QWEN3 EMBEDDINGS
+   - Train small embedding to mimic Qwen3's embedding space
+   - tiny_embed(token) ≈ qwen3_embed(token)
+   - Then use with the well-trained MLP (which works great)
+   - Goal: Small embeddings + frozen-trained MLP = best of both worlds
+   - Could get 0.90+ accuracy with ~10M total params (not 600MB)
+
+3. NEXT-VECTOR LANGUAGE MODEL (PARTIALLY TESTED - INVERSE FAILED)
+
+   Original idea:
+   - Predict next direction vector in sequence
+   - Decode by inverting to embedding, find nearest token
+
+   STATUS: The inverse transform doesn't work (0.36 reconstruction).
+
+   ALTERNATIVE: Use predicted direction vectors for:
+   - Semantic coherence scoring
+   - Steering/constraining generation
+   - NOT for direct token decoding
+
+4. CHARACTER-LEVEL INPUT
+   - Instead of token embeddings, use character-level input
+   - Can generalize to truly novel words (not in vocabulary)
+   - Smaller model possible, no embedding table needed
+
+5. MULTI-LAYER EXTRACTION
+   - Extract from multiple layers, not just middle
+   - Different layers encode different information
+   - Might improve prediction quality
+
+6. RELATIONSHIP PREDICTION (ANALOGIES)
+   - Train on: (king, queen, man) -> woman
+   - Forces learning relational structure
+   - Could improve generalization
+
+7. SCALING UP
+   - More concepts (100K? 200K?)
+   - Larger teacher model (Qwen3-1.7B, Qwen3-4B)
+   - See if trends continue
+
+================================================================================
+HOW TO CONTINUE EXPERIMENTS
+================================================================================
+
+STEP 1: SET UP ENVIRONMENT
+```bash
+cd c:\Users\mwstr\GPT5test\activation-distillation
+pip install -r requirements.txt
+```
+
+STEP 2: CHECK DATA EXISTS
+- Verify: data\vectors\qwen3_vectors_qwen3_0.6b_50000concepts.pt exists
+- If not, run: python experiments\qwen3_scaling\extract_large_scale.py --model qwen3-0.6b --num-concepts 50000
+
+STEP 3: RUN COMPARISON (recommended first step)
+```bash
+cd experiments\qwen3_scaling
+python compare_approaches.py --epochs 50
+```
+
+STEP 4: TRY NEXT-VECTOR LM (experimental)
+```bash
+python next_vector_lm.py --arch transformer --model-dim 256 --epochs 50
+```
+
+================================================================================
+CURRENT BEST CONFIGURATION
+================================================================================
+
+Model: TinyTrainableModel
+- vocab_size: 151,669 (Qwen3 tokenizer)
+- embed_dim: 32 (TINY - this is key!)
+- hidden_dim: 128
+- output_dim: 1024
+
+Training:
+- Batch size: 128
+- Learning rate: 1e-3
+- Epochs: 50
+- Optimizer: AdamW with weight_decay=0.01
+
+Results:
+- Train cos_sim: 0.94
+- Val cos_sim: 0.88
+- Test cos_sim: 0.87
+- Generalization gap: 0.01
+
+================================================================================
+KEY TAKEAWAYS
+================================================================================
+
+1. SMALL EMBEDDINGS ARE CRUCIAL
+   - 32-dim embeddings force learning structure
+   - 256+ dim embeddings allow memorization
+
+2. MORE DATA HELPS
+   - 1000 concepts = overfitting
+   - 50000 concepts = good generalization
+
+3. SIMPLE MODELS WORK
+   - MLP outperforms transformers for this task
+   - Don't need complex architectures
+
+4. THE TRANSFORMATION EXISTS
+   - There IS a learnable mapping from text -> Qwen3 vectors
+   - A 5M param model can approximate it with 0.87 accuracy
+
+5. POTENTIAL FOR "COMPRESSED LM"
+   - If next-vector prediction works, could have tiny LM
+   - Operates in semantic space, decodes to tokens
+
+================================================================================
+QUESTIONS FOR FUTURE EXPLORATION
+================================================================================
+
+ANSWERED QUESTIONS:
+1. Can we get test cosine similarity above 0.90?
+   YES - Frozen+MLP gets 0.9076
+
+2. Does next-vector prediction work for generation via inverse?
+   NO - Inverse transform is too lossy (0.36 reconstruction)
+
+OPEN QUESTIONS:
+3. Can auxiliary supervision reduce training data needs for tiny LM?
+   - This is the most promising next direction
+   - Use direction vectors to guide training, not for generation
+
+4. Can we distill even larger models (Qwen3-4B)?
+   - Would direction vectors from larger models be even more useful?
+
+5. What's the minimum viable model size for auxiliary-trained LM?
+   - Could we train a 10M param LM that performs like 100M?
+
+6. Can direction vectors be used for LLM steering?
+   - Add direction to hidden state to change behavior
+   - This still seems viable (doesn't need inverse)
+
+7. Does auxiliary supervision work with real text, not just synthetic?
+   - Need to test with actual corpus data
+
+================================================================================
+SUMMARY OF WHAT WORKS VS WHAT DOESN'T
+================================================================================
+
+WORKS:
+✓ Concept → direction vector prediction (0.90+ accuracy)
+✓ Linear relationship between embeddings and directions
+✓ Tiny models can learn semantic structure
+✓ Frozen embeddings + small MLP = best accuracy
+
+DOESN'T WORK:
+✗ Inverse transform for generation (direction → embedding is lossy)
+✗ Decoding from direction space directly
+✗ Using direction vectors as the main generation path
+
+PROMISING (UNTESTED):
+? Auxiliary supervision for tiny LM training
+? Distilling Qwen3 embeddings to smaller space
+? Character-level input for novel words
+
+================================================================================
+END OF DOCUMENTATION
+================================================================================

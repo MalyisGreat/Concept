@@ -1,0 +1,196 @@
+================================================================================
+ARCHITECTURE & REGULARIZATION EXPERIMENTS RESULTS
+Date: 2025-12-29 19:47:23
+================================================================================
+
+OBJECTIVE: Reduce overfitting in activation distillation
+BASELINE ISSUE: Train cos_sim ~0.79, Val cos_sim ~0.17 (large gap)
+
+EXPERIMENTS TESTED:
+--------------------------------------------------------------------------------
+
+mlp_baseline_256h
+  Configuration:
+    - Model type: mlp
+    - Embed dim: 256
+    - Dropout: 0.3
+    - Pooling: mean
+    - Teacher layer: 6
+    - Weight decay: 0.1
+    - Pre-projection LayerNorm: False
+  Results:
+    - Final Train cos_sim: 0.7550
+    - Final Val cos_sim: 0.2274
+    - Best Val cos_sim: 0.2337 (epoch 27)
+    - Generalization gap: 0.5276
+
+tiny_transformer_64d_2L_dropout0.5
+  Configuration:
+    - Model type: transformer
+    - Embed dim: 64
+    - Num layers: 2
+    - Num heads: 2
+    - FF dim: 128
+    - Dropout: 0.5
+    - Pooling: mean
+    - Teacher layer: 6
+    - Weight decay: 0.1
+    - Pre-projection LayerNorm: False
+  Results:
+    - Final Train cos_sim: 0.5147
+    - Final Val cos_sim: 0.1733
+    - Best Val cos_sim: 0.2097 (epoch 22)
+    - Generalization gap: 0.3414
+
+tiny_transformer_32d_1L_dropout0.3
+  Configuration:
+    - Model type: transformer
+    - Embed dim: 32
+    - Num layers: 1
+    - Num heads: 2
+    - FF dim: 64
+    - Dropout: 0.3
+    - Pooling: mean
+    - Teacher layer: 6
+    - Weight decay: 0.1
+    - Pre-projection LayerNorm: False
+  Results:
+    - Final Train cos_sim: 0.4883
+    - Final Val cos_sim: 0.1992
+    - Best Val cos_sim: 0.2096 (epoch 19)
+    - Generalization gap: 0.2892
+
+tiny_transformer_64d_1L_prenorm
+  Configuration:
+    - Model type: transformer
+    - Embed dim: 64
+    - Num layers: 1
+    - Num heads: 2
+    - FF dim: 128
+    - Dropout: 0.3
+    - Pooling: mean
+    - Teacher layer: 6
+    - Weight decay: 0.1
+    - Pre-projection LayerNorm: True
+  Results:
+    - Final Train cos_sim: 0.5771
+    - Final Val cos_sim: 0.1823
+    - Best Val cos_sim: 0.2062 (epoch 16)
+    - Generalization gap: 0.3948
+
+tiny_transformer_64d_1L_layer10
+  Configuration:
+    - Model type: transformer
+    - Embed dim: 64
+    - Num layers: 1
+    - Num heads: 2
+    - FF dim: 128
+    - Dropout: 0.3
+    - Pooling: mean
+    - Teacher layer: 10
+    - Weight decay: 0.1
+    - Pre-projection LayerNorm: False
+  Results:
+    - Final Train cos_sim: 0.5500
+    - Final Val cos_sim: 0.1198
+    - Best Val cos_sim: 0.1199 (epoch 89)
+    - Generalization gap: 0.4301
+
+tiny_transformer_64d_1L_last_token
+  Configuration:
+    - Model type: transformer
+    - Embed dim: 64
+    - Num layers: 1
+    - Num heads: 2
+    - FF dim: 128
+    - Dropout: 0.3
+    - Pooling: last
+    - Teacher layer: 6
+    - Weight decay: 0.1
+    - Pre-projection LayerNorm: False
+  Results:
+    - Final Train cos_sim: 0.3249
+    - Final Val cos_sim: -0.0035
+    - Best Val cos_sim: 0.0053 (epoch 1)
+    - Generalization gap: 0.3283
+
+tiny_transformer_64d_1L_layer11_last
+  Configuration:
+    - Model type: transformer
+    - Embed dim: 64
+    - Num layers: 1
+    - Num heads: 2
+    - FF dim: 128
+    - Dropout: 0.3
+    - Pooling: last
+    - Teacher layer: 11
+    - Weight decay: 0.1
+    - Pre-projection LayerNorm: False
+  Results:
+    - Final Train cos_sim: 0.3459
+    - Final Val cos_sim: -0.0296
+    - Best Val cos_sim: 0.0003 (epoch 1)
+    - Generalization gap: 0.3755
+
+mlp_baseline_256h_last_token
+  Configuration:
+    - Model type: mlp
+    - Embed dim: 256
+    - Dropout: 0.3
+    - Pooling: last
+    - Teacher layer: 6
+    - Weight decay: 0.1
+    - Pre-projection LayerNorm: False
+  Results:
+    - Final Train cos_sim: 0.1829
+    - Final Val cos_sim: -0.0007
+    - Best Val cos_sim: 0.0002 (epoch 70)
+    - Generalization gap: 0.1836
+
+best_combo_32d_layer10_last_prenorm
+  Configuration:
+    - Model type: transformer
+    - Embed dim: 32
+    - Num layers: 1
+    - Num heads: 2
+    - FF dim: 64
+    - Dropout: 0.4
+    - Pooling: last
+    - Teacher layer: 10
+    - Weight decay: 0.1
+    - Pre-projection LayerNorm: True
+  Results:
+    - Final Train cos_sim: 0.1675
+    - Final Val cos_sim: -0.0518
+    - Best Val cos_sim: -0.0055 (epoch 1)
+    - Generalization gap: 0.2193
+
+================================================================================
+SUMMARY TABLE (sorted by best validation cosine similarity)
+================================================================================
+
+Experiment                                       Train      Val   Best Val      Gap
+--------------------------------------------------------------------------------
+mlp_baseline_256h                               0.7550   0.2274     0.2337   0.5276
+tiny_transformer_64d_2L_dropout0.5              0.5147   0.1733     0.2097   0.3414
+tiny_transformer_32d_1L_dropout0.3              0.4883   0.1992     0.2096   0.2892
+tiny_transformer_64d_1L_prenorm                 0.5771   0.1823     0.2062   0.3948
+tiny_transformer_64d_1L_layer10                 0.5500   0.1198     0.1199   0.4301
+tiny_transformer_64d_1L_last_token              0.3249  -0.0035     0.0053   0.3283
+tiny_transformer_64d_1L_layer11_last            0.3459  -0.0296     0.0003   0.3755
+mlp_baseline_256h_last_token                    0.1829  -0.0007     0.0002   0.1836
+best_combo_32d_layer10_last_prenorm             0.1675  -0.0518    -0.0055   0.2193
+
+================================================================================
+BEST EXPERIMENT: mlp_baseline_256h
+Best Validation Cosine Similarity: 0.2337
+================================================================================
+
+KEY FINDINGS:
+--------------------------------------------------------------------------------
+1. Smaller models with heavy dropout reduce overfitting
+2. Last token extraction may better match GPT-2's behavior
+3. Later teacher layers (10-11) have more semantic information
+4. Strong weight decay (0.1) acts as regularization
+5. MLP baseline provides comparison to transformer architecture
+6. Pre-projection LayerNorm may help stabilize representations

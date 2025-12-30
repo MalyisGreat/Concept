@@ -1,0 +1,15 @@
+{
+  "config": {
+    "num_concepts": 500,
+    "bottleneck_dim": 32,
+    "hidden_dim": 128,
+    "epochs": 150
+  },
+  "results": {
+    "best_val_cos_sim": 0.19773344844579696,
+    "test_cos_sim": 0.05292336298152804,
+    "final_ordering_acc": 1.0,
+    "generalization_gap": 0.9252604619261217,
+    "num_params": 10004512
+  }
+}

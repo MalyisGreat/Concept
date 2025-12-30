@@ -1,0 +1,69 @@
+[
+  {
+    "trainable_params": 4989728,
+    "best_val": 0.8820034447362868,
+    "test": 0.8674233394154047,
+    "gap": 0.014580105320882053,
+    "approach": "trainable",
+    "embed_dim": 32,
+    "hidden_dim": 128
+  },
+  {
+    "trainable_params": 5125024,
+    "best_val": 0.8823552990363817,
+    "test": 0.8766237416509854,
+    "gap": 0.005731557385396213,
+    "approach": "trainable",
+    "embed_dim": 32,
+    "hidden_dim": 256
+  },
+  {
+    "trainable_params": 9847232,
+    "best_val": 0.9018021124904438,
+    "test": 0.8857745689860845,
+    "gap": 0.01602754350435931,
+    "approach": "trainable",
+    "embed_dim": 64,
+    "hidden_dim": 128
+  },
+  {
+    "trainable_params": 9986624,
+    "best_val": 0.8994677854796588,
+    "test": 0.8951286198729176,
+    "gap": 0.004339165606741191,
+    "approach": "trainable",
+    "embed_dim": 64,
+    "hidden_dim": 256
+  },
+  {
+    "trainable_params": 132160,
+    "best_val": 0.9178137112472017,
+    "test": 0.9019436866550122,
+    "gap": 0.015870024592189447,
+    "approach": "frozen_mlp",
+    "hidden_dim": 64
+  },
+  {
+    "trainable_params": 263296,
+    "best_val": 0.9200548287165367,
+    "test": 0.9071471206212448,
+    "gap": 0.012907708095291848,
+    "approach": "frozen_mlp",
+    "hidden_dim": 128
+  },
+  {
+    "trainable_params": 525568,
+    "best_val": 0.9207228028168113,
+    "test": 0.9075967861434161,
+    "gap": 0.013126016673395191,
+    "approach": "frozen_mlp",
+    "hidden_dim": 256
+  },
+  {
+    "trainable_params": 1049600,
+    "best_val": 0.9188240675602929,
+    "test": 0.9062199319823313,
+    "gap": 0.012604135577961584,
+    "approach": "linear_probe"
+  }
+]

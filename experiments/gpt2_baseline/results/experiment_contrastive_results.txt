@@ -1,0 +1,58 @@
+======================================================================
+CONTRASTIVE LEARNING EXPERIMENT RESULTS
+======================================================================
+Date: 2025-12-29 19:39:47
+
+CONFIGURATION:
+  Temperature: 0.1
+  Num negatives: 15
+  Hard negative ratio: 0.5
+  Student embed dim: 64
+  Student layers: 2
+  Student parameters: 3,370,560
+  Learning rate: 0.0003
+  Weight decay: 0.05
+  Dropout: 0.2
+  Epochs: 100
+
+TRAINING PROGRESS (key epochs):
+  Epoch   1: train_cos_sim=-0.0033, val_cos_sim=0.0008
+  Epoch  11: train_cos_sim=0.3745, val_cos_sim=-0.0061
+  Epoch  21: train_cos_sim=0.7404, val_cos_sim=0.0102
+  Epoch  31: train_cos_sim=0.8521, val_cos_sim=0.0238
+  Epoch  41: train_cos_sim=0.8826, val_cos_sim=0.0278
+  Epoch  51: train_cos_sim=0.8934, val_cos_sim=0.0290
+  Epoch  61: train_cos_sim=0.8978, val_cos_sim=0.0297
+  Epoch  71: train_cos_sim=0.9000, val_cos_sim=0.0294
+  Epoch  81: train_cos_sim=0.9011, val_cos_sim=0.0296
+  Epoch  91: train_cos_sim=0.9012, val_cos_sim=0.0287
+  Epoch 100: train_cos_sim=0.9013, val_cos_sim=0.0292
+
+FINAL RESULTS:
+
+  Training Set:
+    Mean Cosine Similarity: -0.0033
+    Top-1 Accuracy: 0.0000
+    Top-5 Accuracy: 0.0357
+
+  Validation Set:
+    Mean Cosine Similarity: 0.0008
+    Top-1 Accuracy: 0.0333
+    Top-5 Accuracy: 0.1667
+
+  Test Set (Held-out):
+    Mean Cosine Similarity: -0.0051
+    Top-1 Accuracy: 0.0000
+    Top-5 Accuracy: 0.1000
+
+GENERALIZATION ANALYSIS:
+  Train-Val Gap: -0.0041
+  Train-Test Gap: 0.0018
+
+COMPARISON TO BASELINE (from problem statement):
+  Baseline: train cos_sim ~0.79, val cos_sim ~0.17
+  This experiment: train cos_sim ~-0.00, val cos_sim ~0.00
+
+  No improvement over baseline on validation set.
+
+======================================================================
